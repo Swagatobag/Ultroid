@@ -1,20 +1,29 @@
-# Ultroid - UserBot
-# Copyright (C) 2021-2026 TeamUltroid
-# This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
-# PLease read the GNU Affero General Public License in <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+# Minimal Dockerfile for Ultroid (Python Telethon bot)
+FROM python:3.11-slim
 
-FROM theteamultroid/ultroid:main
+# Install system deps needed by ffmpeg and some Python packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      ffmpeg \
+      gcc \
+      libffi-dev \
+      libssl-dev \
+      build-essential \
+      git \
+      libpq-dev \
+      && rm -rf /var/lib/apt/lists/*
 
-# set timezone
-ENV TZ=Asia/Kolkata
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+WORKDIR /app
 
-COPY installer.sh .
+# Copy only requirements first for better layer caching
+COPY requirements.txt resources/startup/optional-requirements.txt ./
 
-RUN bash installer.sh
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt \
+    && if [ -f resources/startup/optional-requirements.txt ]; then pip install --no-cache-dir -r resources/startup/optional-requirements.txt || true; fi
 
-# changing workdir
-WORKDIR "/root/TeamUltroid"
+# Copy the rest of the repo
+COPY . .
 
-# start the bot.
-CMD ["bash", "startup"]
+# Use python module entrypoint used in README/startup
+CMD ["python", "-m", "pyUltroid"]

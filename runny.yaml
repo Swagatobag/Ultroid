@@ -1,0 +1,29 @@
+# Runny.ai deployment descriptor for Ultroid (DB vars removed)
+name: ultroid
+description: Ultroid — Advanced Telethon-based Telegram userbot
+build:
+  context: .
+  dockerfile: Dockerfile
+
+entrypoint:
+  - "python"
+  - "-m"
+  - "pyUltroid"
+
+env:
+  - name: API_ID
+  - name: API_HASH
+  - name: SESSION
+  - name: BOT_TOKEN
+  - name: LOG_CHANNEL
+  - name: HEROKU_API
+  - name: HEROKU_APP_NAME
+
+secrets:
+  - API_ID
+  - API_HASH
+  - SESSION
+  - BOT_TOKEN
+  - LOG_CHANNEL
+  - HEROKU_API
+  - HEROKU_APP_NAME
