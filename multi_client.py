@@ -1,39 +1,46 @@
-import asyncio
+# multi_client: disable auto multi-client spawns in hosted builds
 import os
-import subprocess
-import sys
 
-vars = ["API_ID", "API_HASH", "SESSION"]
+HOSTED_SANITIZED = os.environ.get("HOSTED_SANITIZED", "1") == "1"
 
-def _check(z):
-    new = []
-    for var in vars:
-        ent = os.environ.get(var + z)
-        if not ent:
-            return False, new
-        new.append(ent)
-    return True, new
+if HOSTED_SANITIZED:
+    # Do nothing in hosted builds
+    print("multi_client disabled in hosted sanitized build")
+else:
+    import asyncio
+    import subprocess
+    import sys
 
-for z in range(5):
-    n = str(z + 1)
-    if z == 0:
-        z = ""
-    fine, out = _check(str(z))
-    if fine:
-        subprocess.Popen(
-            [sys.executable, "-m", "pyUltroid", out[0], out[1], out[2], out[3], out[4], n],
-            stdin=None,
-            stderr=None,
-            stdout=None,
-            cwd=None,
-        )
+    vars = ["API_ID", "API_HASH", "SESSION"]
 
-loop = asyncio.get_event_loop()
+    def _check(z):
+        new = []
+        for var in vars:
+            ent = os.environ.get(var + z)
+            if not ent:
+                return False, new
+            new.append(ent)
+        return True, new
 
-try:
-    loop.run_forever()
-except Exception as er:
-    print(er)
-finally:
-    loop.close()
+    for z in range(5):
+        n = str(z + 1)
+        if z == 0:
+            z = ""
+        fine, out = _check(str(z))
+        if fine:
+            subprocess.Popen(
+                [sys.executable, "-m", "pyUltroid", out[0], out[1], out[2], out[3], out[4], n],
+                stdin=None,
+                stderr=None,
+                stdout=None,
+                cwd=None,
+            )
 
+    loop = asyncio.get_event_loop()
+
+    try:
+        loop.run_forever()
+    except Exception as er:
+        print(er)
+    finally:
+        loop.close()

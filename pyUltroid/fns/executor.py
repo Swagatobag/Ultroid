@@ -1,27 +1,15 @@
+# executor: disable arbitrary process spawning in hosted builds
+import os
+
+HOSTED_SANITIZED = os.environ.get("HOSTED_SANITIZED", "1") == "1"
+
 from asyncio import create_subprocess_exec, subprocess
 
 
 class Terminal:
     """
     Class for running terminal commands asynchronously.
-
-    Methods:
-
-        run(commands: str)
-            commands: Terminal Commands.
-            Returns Process id (int)
-
-        terminate(pid: int)
-            pid: Process id returned in `run` method.
-            Returns True if terminated else False (bool)
-
-        output(pid: int)
-            pid: Process id returned in `run` method.
-            Returns Output of process (str)
-
-        error(pid: int)
-            pid: Process id returned in `run` method.
-            Returns Error of process (str)
+    Disabled in hosted sanitized builds to avoid arbitrary process execution.
     """
 
     def __init__(self) -> None:
@@ -32,6 +20,8 @@ class Terminal:
         return data.decode("utf-8").strip()
 
     async def run(self, *args) -> int:
+        if HOSTED_SANITIZED:
+            raise RuntimeError("Process spawning disabled in hosted deployments.")
         process = await create_subprocess_exec(
             *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
@@ -68,9 +58,13 @@ class Terminal:
     @property
     def _auto_remove_processes(self) -> None:
         while self._processes:
-            for proc in self._processes.keys():
-                if proc.returncode is not None:  # process is still running
-                    try:
-                        self._processes.pop(proc)
-                    except KeyError:
-                        pass
+            for proc in list(self._processes.keys()):
+                p = self._processes.get(proc)
+                try:
+                    if p.returncode is not None:  # process is finished
+                        try:
+                            del self._processes[proc]
+                        except KeyError:
+                            pass
+                except Exception:
+                    pass
